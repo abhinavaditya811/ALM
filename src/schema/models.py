@@ -13,12 +13,12 @@ Design rules encoded in these models:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as _date
+from datetime import datetime
 from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
-
 
 # --------------------------------------------------------------------------- #
 # Enums / closed vocabularies
@@ -57,7 +57,7 @@ class WORecord(BaseModel):
     wo_id: str
     asset_id: str
     note: str = Field(description="Free-text maintenance note; may be terse/empty.")
-    date: date | None = None
+    date: _date | None = None
     asset_type: str | None = None
     cost: float | None = Field(default=None, ge=0)
 
@@ -88,7 +88,7 @@ class Classification(BaseModel):
     skill_version: str = Field(description="Provenance: which skill version ran.")
 
     @model_validator(mode="after")
-    def _check_mode_consistency(self) -> "Classification":
+    def _check_mode_consistency(self) -> Classification:
         if self.category == Category.FAILURE:
             if self.failure_mode is None:
                 raise ValueError("failure category requires a failure_mode")
@@ -118,7 +118,7 @@ class EvalCase(BaseModel):
     labeler_notes: str | None = None
 
     @model_validator(mode="after")
-    def _check_truth_consistency(self) -> "EvalCase":
+    def _check_truth_consistency(self) -> EvalCase:
         if self.true_category == Category.FAILURE:
             if self.true_failure_mode not in FAILURE_MODES:
                 raise ValueError("failure eval case needs a valid true_failure_mode")
@@ -169,7 +169,7 @@ class Correction(BaseModel):
     corrected_at: datetime = Field(default_factory=datetime.utcnow)
 
     @model_validator(mode="after")
-    def _check_correction_consistency(self) -> "Correction":
+    def _check_correction_consistency(self) -> Correction:
         if self.corrected_category == Category.FAILURE:
             if self.corrected_failure_mode not in FAILURE_MODES:
                 raise ValueError("failure correction needs a valid failure_mode")
