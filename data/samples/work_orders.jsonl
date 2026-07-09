@@ -1,0 +1,12 @@
+{"wo_id": "WO-1001", "asset_id": "PUMP-07", "note": "P-07 outboard brg noisy then seized, tripped unit, R&R bearing", "date": "2026-01-14", "asset_type": "centrifugal pump", "cost": 2450.0}
+{"wo_id": "WO-1002", "asset_id": "PUMP-12", "note": "mech seal blowing product all over, gland leak, replaced seal", "date": "2026-02-03", "asset_type": "process pump", "cost": 1875.5}
+{"wo_id": "WO-1003", "asset_id": "MTR-04", "note": "motor keeps tripping o/l, meg reading low on 2 phases, off to rewind shop", "date": "2026-02-19", "asset_type": "motor", "cost": 5200.0}
+{"wo_id": "WO-1004", "asset_id": "PUMP-07", "note": "quarterly PM per route, lube + alignment check, everything within spec", "date": "2026-03-01", "asset_type": "centrifugal pump", "cost": 320.0}
+{"wo_id": "WO-1005", "asset_id": "PUMP-19", "note": "vib alarm, coupling insert shredded, realigned and new insert fitted", "date": "2026-03-11", "asset_type": "pump", "cost": 980.0}
+{"wo_id": "WO-1006", "asset_id": "PUMP-03", "note": "brg temp high, found grease dried out / starved, purged and re-greased", "date": "2026-03-22", "asset_type": "pump", "cost": 210.0}
+{"wo_id": "WO-1007", "asset_id": "PUMP-21", "note": "impeller eroded bad from cavitation, swapped impeller", "date": "2026-04-02", "asset_type": "slurry pump", "cost": 3100.0}
+{"wo_id": "WO-1008", "asset_id": "PUMP-05", "note": "scheduled predictive vibe survey, all readings nominal, no action", "date": "2026-04-15", "asset_type": "pump", "cost": 150.0}
+{"wo_id": "WO-1009", "asset_id": "PUMP-33", "note": "see attached / ask supervisor", "date": null, "asset_type": null, "cost": null}
+{"wo_id": "WO-1010", "asset_id": "PUMP-08", "note": "", "date": null, "asset_type": "pump", "cost": null}
+{"wo_id": "WO-1011", "asset_id": "PUMP-08", "note": "n/a", "date": null, "asset_type": "pump", "cost": null}
+{"wo_id": "WO-1012", "asset_id": "MTR-09", "note": "replaced worn brgs on proactive basis during shutdown, no defect found", "date": "2026-05-06", "asset_type": "motor", "cost": 640.0}
