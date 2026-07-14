@@ -1,4 +1,93 @@
-# NOTES FOR ADMIN — v0.1 build run (Tasks 0–4)
+# NOTES FOR ADMIN — v0.1 build run (Tasks 0–4, then 5–10)
+
+## Addendum — Tasks 5–10 (harness build-out)
+
+Scope of this run: the full harness (eval set loader, scoring, gate, registry,
+corrections, end-to-end loop test). Stacked branches `task-5` → `task-10`, each
+based on the previous, one PR per task (unmerged, per the existing convention):
+PRs #6–#11 against `abhinavaditya811/ALM`.
+
+### DECISIONS LOGGED (D6+)
+
+**D6 — the eval set is a SYNTHETIC PLACEHOLDER, not real labeled data.**
+No labeled work-order dataset exists anywhere in this repo or elsewhere I could
+find (confirmed by search before building). Per your explicit sign-off, I
+authored 50 records by hand (`data/evalset/failure_vs_suspension.jsonl`) where
+each note was written to match its label — NOT produced by two independent
+labelers + adjudication as `EvalCase`'s docstring describes. Flagged loudly in
+`data/evalset/README.md`. **Every metric produced against this set (including
+the numbers below) is a plumbing check, not a reliability number — do not quote
+it to a stakeholder.** Replace the `.jsonl` + regenerate the manifest with real
+labeled data before that's true.
+
+**D7 — eval set integrity check design: count + sha256 manifest.**
+`src/harness/evalset.py` pairs `failure_vs_suspension.jsonl` with a sibling
+`failure_vs_suspension.manifest.json` (`{"count", "sha256"}`). The loader
+refuses to load if either drifts. No write function exists anywhere in the
+module — if you ever need to legitimately edit the eval set, you must also
+regenerate the manifest by hand (e.g. `shasum -a 256`).
+
+**D8 — regression gate tolerance is a judgment call: 0.02 flat, per metric.**
+`src/harness/gate.py`'s `METRIC_TOLERANCE = 0.02` applies uniformly to all 4
+tracked metrics (failure_precision, failure_recall, macro_f1 as
+higher-is-better; calibration_error as lower-is-better). Not derived from any
+data — a reasonable starting default, isolated in one constant if you want it
+stricter/looser or per-metric.
+
+**D9 — registry/corrections storage is gitignored, unlike the eval set.**
+`data/registry/` and `data/corrections/` are runtime state produced by
+*actually running* the harness (not source, not the frozen ruler), so I added
+them to `.gitignore` rather than committing empty/placeholder files. Nothing
+has been legitimately registered yet (no real scoring run has happened outside
+tests and one manual sanity check). Easy to un-gitignore later if you'd rather
+track the audit trail in git history from the start.
+
+**D10 — Task 10's "v2" is simulated via a version-tagged subclass, not a real
+second prompt.** BUILD_PLAN Task 10 asks to "simulate a changed prompt via a
+different mock." Since building an actual second prompt/skill is explicitly
+out of v0.1 scope (non-goals), `tests/test_harness_loop.py` defines a
+test-local `_SimulatedV2Skill(FailureVsSuspensionSkill)` that only overrides
+the `VERSION` class attribute, paired with a different mocked backend. This
+exists only in the test file — nothing under `src/` implies a real v2 exists.
+
+### TASK STATUS (5–10)
+
+All six DONE. Full suite (Tasks 0–10): **73 passed**, `mypy src` / `mypy tests`
+clean, `ruff check src tests` clean, after every task. One real bug caught by
+`mypy` mid-build (Task 6: a loop-variable type conflict in
+`harness/scoring.py`'s `_match`), fixed before commit — see PR #7.
+
+### REAL METRIC / SCORING (still not a real number — see D6)
+
+As a plumbing sanity check (not committed as a test, run manually), the real
+`failure_vs_suspension` skill scored against the real 50-record placeholder
+set, with a mocked backend that always predicts `failure`/`Bearing Failure`
+at confidence 0.9:
+- `failure_precision` = 0.612 (30 true failures / 49 predicted-failure — the
+  skill's own empty-note shortcut correctly left 1 case as `unclassifiable`
+  with zero LLM calls for that one)
+- `failure_recall` = 1.0
+- `macro_f1` = 0.327
+- `calibration_error` = 0.302
+
+These numbers say nothing about real classification quality — they say the
+wiring between the loader, the skill, and the scorer is correct. Do not use
+them for anything else.
+
+### WHAT I'D DO NEXT
+1. Get the stacked PRs (#6–#11) reviewed and merged in order.
+2. Replace `data/evalset/failure_vs_suspension.jsonl` with real labeled work
+   orders (ideally two independent labelers + adjudication) and regenerate
+   the manifest — this is the one thing standing between "the harness runs"
+   and "the harness tells you something true."
+3. Once real data is in, run the scorer for real and report the actual
+   `failure_precision` — do not reuse the placeholder numbers above.
+4. Decide whether to un-gitignore `data/registry/`/`data/corrections/` once a
+   real run produces a registry/correction history worth keeping in git.
+
+---
+
+# Original notes (Tasks 0–4)
 
 Scope of this run: Tasks 0 through 4 only. Tasks 5+ (harness: eval set, scoring,
 gate, corrections, registry, loop) are intentionally OUT of scope and NOT built.
