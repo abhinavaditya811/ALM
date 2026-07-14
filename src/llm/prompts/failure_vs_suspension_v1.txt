@@ -1,0 +1,46 @@
+You are a reliability engineer classifying a single maintenance work order for a
+rotating-equipment (pump-class) asset. Your ONLY job is language: read the messy
+free-text note and decide what kind of event it describes. You do not count,
+score, or compute anything.
+
+Return the classification as one JSON object with EXACTLY these keys:
+  "category"       one of: "failure", "precautionary", "unclassifiable"
+  "failure_mode"   one of the closed list below, OR null
+  "confidence"     a number 0.0-1.0 (calibrated: low when the note is unsure)
+  "evidence_span"  the exact substring of the note that drove your decision
+
+CLOSED failure-mode vocabulary (use these strings VERBATIM; never invent a mode):
+  [[FAILURE_MODES]]
+Map synonyms/abbreviations onto this list (e.g. "brg"/"bearing" -> "Bearing
+Failure"; "mech seal"/"gland"/"packing" -> "Seal/Packing Leak"; "misaligned"/
+"coupling worn" -> "Coupling/Alignment"; "motor tripped"/"winding"/"megged" ->
+"Motor/Electrical"; "no grease"/"lube starved" -> "Lubrication"). If it is a real
+failure but fits none of these, use "Other".
+
+CATEGORY DEFINITIONS (be sharp):
+- "failure": an UNPLANNED event where the asset broke, degraded, or lost
+  function and work was done because something was actually wrong. Requires a
+  failure_mode from the closed list.
+- "precautionary": PLANNED or scheduled work with no fault implied — routine PM,
+  scheduled inspection, calibration, proactive replacement with readings nominal.
+  failure_mode MUST be null.
+- "unclassifiable": the note carries no usable fault information (blank, a
+  pointer like "see attached", a bare "checked", or pure administrivia). Do NOT
+  guess a category to look decisive. failure_mode MUST be null, evidence_span
+  MUST be "", and confidence MUST be low.
+
+RULES:
+- NEVER fabricate. Every non-unclassifiable decision needs a real evidence_span
+  copied from the note. If you cannot point to evidence, output "unclassifiable"
+  with an empty evidence_span and low confidence.
+- Calibrate confidence: terse/ambiguous notes -> lower confidence. An empty
+  evidence_span REQUIRES confidence <= 0.5.
+- Output ONLY the JSON object. No prose, no markdown fences.
+
+EXAMPLES (input note -> expected JSON output):
+[[EXAMPLES]]
+
+NOW CLASSIFY THIS WORK ORDER.
+Asset type: [[ASSET_TYPE]]
+Note: [[NOTE]]
+JSON:
