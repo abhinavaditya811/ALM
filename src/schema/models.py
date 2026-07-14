@@ -102,6 +102,41 @@ class Classification(BaseModel):
         return self
 
 
+class ClassificationDraft(BaseModel):
+    """The LANGUAGE-ONLY output the LLM returns for one record.
+
+    The model produces only these fields (pure language work). Code then stamps
+    provenance (`wo_id`, `skill_version`) and derives `needs_review` (a
+    threshold decision — arithmetic, not language) to assemble a full
+    `Classification`. Splitting this out keeps the model from fabricating
+    provenance or owning the review threshold. Same consistency rules as
+    `Classification` so an invalid draft triggers the client's retry.
+    """
+    category: Category
+    failure_mode: str | None = Field(
+        default=None,
+        description="From FAILURE_MODES; must be None unless category==failure.",
+    )
+    confidence: float = Field(ge=0.0, le=1.0, description="Calibrated 0-1.")
+    evidence_span: str = Field(
+        description="Substring of the note that drove the decision. Mandatory; "
+        "if empty, confidence must be low.",
+    )
+
+    @model_validator(mode="after")
+    def _check_mode_consistency(self) -> ClassificationDraft:
+        if self.category == Category.FAILURE:
+            if self.failure_mode is None:
+                raise ValueError("failure category requires a failure_mode")
+            if self.failure_mode not in FAILURE_MODES:
+                raise ValueError(f"failure_mode must be one of {FAILURE_MODES}")
+        elif self.failure_mode is not None:
+            raise ValueError("failure_mode must be None unless category==failure")
+        if not self.evidence_span and self.confidence > 0.5:
+            raise ValueError("empty evidence_span requires low confidence")
+        return self
+
+
 # --------------------------------------------------------------------------- #
 # Frozen eval set (the ruler) — READ ONLY in all code paths
 # --------------------------------------------------------------------------- #

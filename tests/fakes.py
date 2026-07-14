@@ -29,3 +29,20 @@ class ScriptedBackend:
         if isinstance(item, ModelResponse):
             return item
         return ModelResponse(text=item, model=self._model, input_tokens=10, output_tokens=5)
+
+
+class ConstantBackend:
+    """A `ModelBackend` that returns the same response text for every call.
+
+    Useful for running a skill over many records where each just needs a
+    schema-valid mocked answer. Records call count for assertions.
+    """
+
+    def __init__(self, text: str, *, model: str = "fake-model") -> None:
+        self._text = text
+        self._model = model
+        self.calls: list[tuple[str, float]] = []
+
+    def complete(self, prompt: str, *, temperature: float) -> ModelResponse:
+        self.calls.append((prompt, temperature))
+        return ModelResponse(text=self._text, model=self._model, input_tokens=10, output_tokens=5)

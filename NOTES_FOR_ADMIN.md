@@ -65,6 +65,27 @@ the previous task's branch, not `main`). No history was rebased or force-pushed.
 Branches (in stack order): `main` → `task-0` → `task-1` → `task-2` → `task-3`
 → `task-4`.
 
+### D4 (Task 4) — prompt file lives in `src/llm/prompts/`, not the skill dir
+
+BUILD_PLAN Task 4 names the prompt `prompts/failure_vs_suspension_v1.txt`, which
+reads as skill-local. But Task 2 says "prompts load from `src/llm/prompts/`" and
+`docs/architecture.md` lists `llm/` as the home for "versioned prompts". I put the
+prompt at `src/llm/prompts/failure_vs_suspension_v1.txt` and load it via
+`load_prompt(...)` so there is ONE prompt home behind the single LLM entry point.
+Easy to relocate if you prefer skill-local prompts; flagging so it's a conscious
+choice, not a silent one.
+
+### D5 (Task 4) — added `ClassificationDraft` to `schema/models.py`
+
+To keep the "LLM does language, code does arithmetic/provenance" invariant, the
+model returns only language fields (category, failure_mode, confidence,
+evidence_span). Code stamps `wo_id`/`skill_version` and derives `needs_review`
+(a threshold decision). That language-only shape is `ClassificationDraft`. Per
+CLAUDE.md ("extend shapes in models.py; never redefine inline") I added it to the
+source-of-truth file rather than defining it in the skill module. It mirrors
+`Classification`'s consistency validators so an invalid draft triggers the
+client's retry. This is an additive extension, not a change to existing shapes.
+
 ---
 
 ## TASK STATUS
@@ -76,4 +97,77 @@ Branches (in stack order): `main` → `task-0` → `task-1` → `task-2` → `ta
 - Applied D1 + D2 above.
 - Verified: `pytest -q` PASS, `mypy src` PASS (no issues), `ruff check` PASS.
 
-(Tasks 1–4 status appended as completed.)
+### Task 1 — Lock down the schema — ✅ DONE
+- `tests/test_schema.py` covers every validator branch: valid failure; failure
+  missing mode; failure_mode outside vocabulary; non-failure with a mode; empty
+  evidence + high confidence (reject); unclassifiable low-confidence empty
+  evidence (accept); confidence out of range; negative cost; and both directions
+  of the EvalCase and Correction consistency validators.
+- No schema redesign (only the D1 import alias from Task 0).
+- Verified: full suite passes, mypy + ruff clean.
+
+### Task 2 — LLM client — ✅ DONE
+- `src/llm/client.py`: `call_structured(prompt, schema, backend)` calls the model
+  at temperature 0, parses JSON (tolerates a markdown fence), validates against a
+  caller pydantic model, retries up to `max_retries` (default 2) on JSON/schema
+  violations appending a repair hint, and logs prompt hash/model/tokens/latency.
+  `StructuredCallError` on exhaustion. `load_prompt` reads versioned files.
+- Model call is injected via `ModelBackend` Protocol → fully mockable; NO provider
+  import, NO network, NO API key needed to build or test.
+- Tests (`tests/test_llm_client.py` + `tests/fakes.py`) cover happy path,
+  temperature=0, fence stripping, malformed-then-valid retry, schema-violation
+  -then-valid retry, and retry exhaustion.
+
+### Task 3 — Skill base protocol — ✅ DONE
+- `src/skills/base.py`: `runtime_checkable` `Skill` Protocol —
+  `run(record) -> Classification` plus `version`, `metric_name`, `eval_set_path`.
+  Contract only, no logic.
+- Test: a `DummySkill` satisfies it structurally (verified with `mypy tests`) and
+  at runtime (`isinstance`), and its `run()` returns a valid `Classification`.
+
+### Task 4 — failure_vs_suspension skill — ✅ DONE
+- `src/skills/failure_vs_suspension/skill.py` implements the protocol using the
+  LLM client. Empty/near-empty note (< 3 non-space chars) → unclassifiable,
+  needs_review, NO LLM call. Code stamps provenance and derives needs_review
+  (threshold 0.6). See D5.
+- `src/llm/prompts/failure_vs_suspension_v1.txt`: domain frame, CLOSED failure-mode
+  list, sharp failure/precautionary/unclassifiable definitions, mandatory
+  evidence_span, calibrated (low-when-unsure) confidence. See D4.
+- `examples.py`: 10 hand-written synthetic few-shot examples spanning all three
+  categories, all six failure modes, and varied vocab/abbreviations. NOT from
+  data/evalset/ (that dir does not exist; forbidden as few-shot anyway).
+- `data/samples/work_orders.jsonl`: 12 synthetic messy work orders (plausible but
+  fake), including empty/near-empty and administrivia notes.
+- Tests (`tests/test_failure_vs_suspension.py`) run the skill over all samples
+  with a mocked backend → schema-valid Classifications; cover protocol
+  conformance, provenance stamping, derived needs_review, the empty-note no-LLM
+  path (asserts zero backend calls), and the retry path.
+
+## OVERALL VERIFICATION (after Task 4, full suite)
+- `pytest`: **39 passed** (4 warnings — pre-existing `datetime.utcnow` deprecation
+  in models.py, which I did not touch per the no-redesign rule).
+- `mypy src`: Success, no issues (9 source files). `mypy tests`: also clean.
+- `ruff check src tests`: All checks passed.
+
+## REAL METRIC / SCORING
+Not applicable yet. Scoring (Task 6) and the frozen eval set (Task 5) are OUT of
+scope for this run, and `data/evalset/` was deliberately NOT created. The skill
+has therefore NOT been scored against any ruler — there is no `failure_precision`
+number to report, and I am not inventing one. All skill tests use a MOCKED model,
+so they prove the plumbing and contracts, not real classification accuracy.
+
+## SKIPPED (out of scope by instruction)
+Tasks 5–10 (frozen eval set loader, scoring runner, regression gate, version
+registry, correction capture, end-to-end loop test). Skipped because this run was
+scoped to Tasks 0–4 only. No `data/evalset/` was created (correct — that is Task
+5+). No harness package exists yet.
+
+## WHAT I'D DO NEXT
+1. Open the stacked PRs manually (see D3) once a remote/`gh` is available.
+2. Task 5: build `src/harness/evalset.py` with the read-only loader + integrity
+   (count+hash) check, and create the frozen `data/evalset/` set.
+3. Continue Tasks 6–10 per BUILD_PLAN. When Task 6 scoring lands, run the skill
+   against the real eval set and report the true `failure_precision`.
+4. Consider (with your sign-off) modernizing `datetime.utcnow` → timezone-aware
+   `datetime.now(UTC)` in models.py to clear the deprecation warnings; left
+   untouched here to respect "do not redesign the schema."
