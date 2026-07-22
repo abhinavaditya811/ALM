@@ -9,6 +9,8 @@ description = "Reliability-analysis skills over messy maintenance work orders, p
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2",
+    "anthropic>=0.110",
+    "openai>=1.0",
 ]
 
 [project.optional-dependencies]
