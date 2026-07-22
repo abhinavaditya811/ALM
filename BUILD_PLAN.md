@@ -136,3 +136,22 @@ Write NOTES_FOR_ADMIN.md with:
 No second skill (scaffold base only). No Weibull/statistical modeling. No
 ReliaSoft/360Navigator export. No live CMMS integration. No capture-side/voice. No
 dashboard. No fine-tuning. No correction promotion / autonomous improvement.
+
+---
+
+## v0.2 addendum — ReliaSoft batch classify API
+
+This file above is the historical, already-executed v0.1 task list — left
+unedited rather than rewritten. **The "No ReliaSoft/360Navigator export"
+non-goal has since been reversed by explicit user decision**: ReliaSoft (or a
+bridge script on their side) now needs to call this project's skill
+operationally. See CLAUDE.md's Non-goals section (current) for the live
+wording, and `src/api/` (`app.py`, `routes.py`, `service.py`) for the
+implementation — a batch-classify HTTP endpoint (FastAPI) that wraps the
+existing `Skill` protocol, required `x-api-key` auth, and per-record error
+isolation so one bad work order doesn't fail an entire ReliaSoft batch. It
+does not replace or bypass the harness: the harness still scores against the
+frozen eval set (offline/dev-time); the API classifies live records
+(online/operational). No ReliaSoft-specific export/field-mapping format was
+built — the API returns this project's own `Classification` shape, and any
+mapping into ReliaSoft's internal fields is left to their side.

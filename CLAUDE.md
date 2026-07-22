@@ -17,6 +17,9 @@ Data contracts are real code in `src/schema/models.py` — read before editing t
 - Type check:   `mypy src`
 - Lint:         `ruff check src tests`
 - Score a skill:`python -m harness.scoring --skill failure_vs_suspension`
+- Run the API:  `uvicorn api.app:create_app --factory --host 0.0.0.0 --port 8000`
+  (requires `ANALYTIXLLM_API_KEY` set; picks the backend via `ANALYTIXLLM_BACKEND`,
+  default `deepseek`)
 
 ## Working Rules
 
@@ -48,5 +51,6 @@ Data contracts are real code in `src/schema/models.py` — read before editing t
 ## Non-goals (do not drift into these)
 
 No second skill yet (scaffold the base protocol only). No Weibull/statistical
-modeling. No ReliaSoft/360Navigator export. No live CMMS integration. No
-capture-side/voice. No dashboard framework. No fine-tuning.
+modeling. No live CMMS integration (ReliaSoft calling our batch-classify API is
+not us integrating with a CMMS ourselves — see `src/api/`). No capture-side/voice.
+No dashboard framework. No fine-tuning.

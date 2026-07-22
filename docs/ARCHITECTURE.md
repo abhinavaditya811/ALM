@@ -43,6 +43,7 @@ src/
   harness/corrections/         # capture + candidate store (store only)
   harness/registry/            # version + score store + rollback
   llm/                         # single client, versioned prompts, retry+validate
+  api/                         # batch-classify HTTP API (live callers, e.g. ReliaSoft)
   schema/models.py             # pydantic contracts — source of truth
 data/
   evalset/                     # frozen labeled records (the ruler) — READ ONLY
@@ -57,6 +58,17 @@ new data -> skill classifies -> engineer reviews & corrects -> correction captur
 -> someone improves the skill -> scoring runner scores it -> gate decides ->
 registry records. A human sits at every gate. v0.1 builds all of this EXCEPT the
 bracketed promotion step.
+
+## Two callers of a skill
+
+The harness (scoring runner) and the API (`src/api/`) both call a skill through
+the same `Skill` protocol (`src/skills/base.py`) — neither bypasses it:
+
+- HARNESS: scores a skill against the FROZEN EVAL SET, offline/dev-time. Answers
+  "did this version get better or worse?"
+- API: classifies live, real work orders for an external caller (e.g. ReliaSoft),
+  online/operational. Answers "what is this one real record?" Batched, per-record
+  error isolation, requires auth, backend chosen server-side (never per-request).
 
 ## Hard invariants
 
