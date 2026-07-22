@@ -138,6 +138,44 @@ class ClassificationDraft(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Live batch classification (the operational API path, e.g. ReliaSoft) —
+# distinct from the frozen eval set below, which is the offline scoring ruler.
+# --------------------------------------------------------------------------- #
+
+class ClassificationError(BaseModel):
+    """One record's classification failure inside a batch call.
+
+    Code-produced only, at the API/orchestration boundary — never returned by
+    the LLM. Carries enough for a caller to identify and retry the record.
+    """
+    wo_id: str
+    error: str = Field(description="Human-readable reason classification failed for this record.")
+
+
+class BatchClassifyRequest(BaseModel):
+    """Request body for a batch classify call: a list of raw work orders."""
+    records: list[WORecord] = Field(min_length=1, max_length=500)
+
+
+class BatchClassifyResponse(BaseModel):
+    """Result of a batch classify call. Partial failure is modeled, not hidden.
+
+    Every requested record ends up in exactly one of `classifications` or
+    `errors` — never silently dropped.
+    """
+    classifications: list[Classification] = Field(default_factory=list)
+    errors: list[ClassificationError] = Field(default_factory=list)
+    skill_version: str
+    n_requested: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _check_counts(self) -> BatchClassifyResponse:
+        if len(self.classifications) + len(self.errors) != self.n_requested:
+            raise ValueError("classifications + errors must account for every requested record")
+        return self
+
+
+# --------------------------------------------------------------------------- #
 # Frozen eval set (the ruler) — READ ONLY in all code paths
 # --------------------------------------------------------------------------- #
 

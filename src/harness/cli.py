@@ -14,29 +14,14 @@ from __future__ import annotations
 
 import argparse
 import uuid
-from collections.abc import Callable
 from pathlib import Path
 
 from harness.evalset import load_eval_set
 from harness.scoring import score_skill
-from llm.anthropic_backend import AnthropicBackend
 from llm.client import ModelBackend
-from llm.deepseek_backend import DeepSeekBackend
+from llm.registry import BACKENDS
 from schema.models import Classification, SkillScore
-from skills.failure_vs_suspension.skill import FailureVsSuspensionSkill
-
-# v0.1 scope is ONE skill; kept as a dict (not an if/elif) so a second skill
-# is a one-line addition, not a redesign.
-SKILLS: dict[str, type[FailureVsSuspensionSkill]] = {
-    "failure_vs_suspension": FailureVsSuspensionSkill,
-}
-
-# Callable (not type[ModelBackend]) so a test can monkeypatch an entry with a
-# plain factory function/lambda, not just another class.
-BACKENDS: dict[str, Callable[[], ModelBackend]] = {
-    "deepseek": DeepSeekBackend,
-    "anthropic": AnthropicBackend,
-}
+from skills.registry import SKILLS
 
 
 def run_scoring(
