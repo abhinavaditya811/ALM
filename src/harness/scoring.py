@@ -115,3 +115,9 @@ def score_skill(
         n_cases=len(pairs),
         run_id=run_id,
     )
+
+
+if __name__ == "__main__":  # pragma: no cover
+    from harness.cli import main
+
+    main()
